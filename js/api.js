@@ -16,8 +16,8 @@
 // ในโปรเจคนี้เราใช้ async/await แทน .then() เพื่อให้อ่านง่ายขึ้น
 // ============================================================
 
-// URL ของ Backend API
-const API_BASE = 'http://localhost:3000/api';
+// URL ของ Backend API (Production — Render)
+const API_BASE = 'https://mini-coffee.onrender.com/api';
 
 // ============================================================
 // getToken - ดึง JWT Token จาก localStorage
