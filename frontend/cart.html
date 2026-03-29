@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ตะกร้าสินค้า — Mini Shopee</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+
+  <!-- NAVBAR -->
+  <nav class="bg-orange-500 text-white shadow-md sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="index.html" class="text-2xl font-bold">🛒 Mini Shopee</a>
+      <div class="flex items-center gap-4 text-sm font-medium">
+        <a href="products.html" class="hover:text-orange-100">สินค้า</a>
+        <a id="nav-orders" href="my-orders.html" class="hidden hover:text-orange-100 transition">📦 คำสั่งซื้อ</a>
+        <a href="cart.html" class="relative font-bold underline underline-offset-2">🛍️ ตะกร้า
+          <span id="nav-cart-badge" class="hidden absolute -top-2 -right-3 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+        </a>
+        <span id="nav-user" class="hidden text-orange-100"></span>
+        <a id="nav-admin" href="admin.html" class="hidden bg-white text-orange-500 px-3 py-1 rounded-full text-xs font-bold">Admin</a>
+        <button id="nav-logout" onclick="logout()" class="hidden bg-orange-600 hover:bg-orange-700 px-3 py-1 rounded transition">ออกจากระบบ</button>
+        <a id="nav-login" href="login.html" class="bg-white text-orange-500 px-4 py-1 rounded-full font-semibold hover:bg-orange-50 transition">เข้าสู่ระบบ</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-4xl mx-auto px-4 py-8 flex-1 w-full">
+    <h1 class="text-2xl font-bold text-gray-800 mb-6">🛍️ ตะกร้าสินค้าของฉัน</h1>
+
+    <!-- Loading -->
+    <div id="loading" class="text-center py-20 text-gray-400">
+      <div class="text-5xl mb-3">⏳</div>
+      <p>กำลังโหลดตะกร้า...</p>
+    </div>
+
+    <!-- Not logged in -->
+    <div id="not-logged-in" class="hidden text-center py-20">
+      <div class="text-6xl mb-4">🔒</div>
+      <p class="text-gray-500 mb-4">กรุณาเข้าสู่ระบบก่อนดูตะกร้าสินค้า</p>
+      <a href="login.html" class="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition">เข้าสู่ระบบ</a>
+    </div>
+
+    <!-- Empty Cart -->
+    <div id="empty-cart" class="hidden text-center py-20">
+      <div class="text-6xl mb-4">🛒</div>
+      <p class="text-gray-500 mb-4">ตะกร้าว่างเปล่า</p>
+      <a href="products.html" class="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition">เลือกซื้อสินค้า</a>
+    </div>
+
+    <!-- Cart Content -->
+    <div id="cart-content" class="hidden">
+      <div class="grid md:grid-cols-3 gap-6">
+
+        <!-- Cart Items (ซ้าย) -->
+        <div class="md:col-span-2 space-y-3" id="cart-items"></div>
+
+        <!-- Summary (ขวา) -->
+        <div class="bg-white rounded-xl shadow p-5 h-fit sticky top-20">
+          <h2 class="font-bold text-gray-800 mb-4 text-lg">สรุปคำสั่งซื้อ</h2>
+          <div class="space-y-2 text-sm text-gray-600 mb-4">
+            <div class="flex justify-between">
+              <span>สินค้า (<span id="summary-count">0</span> ชิ้น)</span>
+              <span id="summary-subtotal">฿0</span>
+            </div>
+            <div class="flex justify-between">
+              <span>ค่าจัดส่ง</span>
+              <span class="text-green-600 font-medium">ฟรี</span>
+            </div>
+            <hr class="my-2" />
+            <div class="flex justify-between font-bold text-gray-800 text-base">
+              <span>ยอดรวม</span>
+              <span id="summary-total" class="text-orange-500 text-xl">฿0</span>
+            </div>
+          </div>
+
+          <button onclick="goToCheckout()"
+                  class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition text-sm">
+            ✅ สั่งซื้อสินค้า
+          </button>
+          <a href="products.html"
+             class="block text-center text-orange-500 hover:underline text-sm mt-3">
+            ← เลือกซื้อสินค้าเพิ่ม
+          </a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bg-gray-800 text-gray-400 text-center py-6 text-sm mt-auto">© 2024 Mini Shopee</footer>
+
+  <script src="js/api.js"></script>
+  <script>
+    // ============================================================
+    // โหลดตะกร้าตอนเริ่ม
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      updateNavbar();
+
+      // ถ้ายังไม่ Login → แสดงข้อความให้ Login
+      if (!isLoggedIn()) {
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('not-logged-in').classList.remove('hidden');
+        return;
+      }
+      loadCart();
+    });
+
+    // ============================================================
+    // loadCart - ดึงข้อมูลตะกร้าจาก API
+    // ============================================================
+    // Flow:
+    // 1. เรียก GET /api/cart พร้อม Token ใน Header
+    // 2. Server ตรวจ Token → รู้ว่าใคร → ดึง Cart ของคนนั้น
+    // 3. ได้ { items, total_price } กลับมา → Render
+    // ============================================================
+    const loadCart = async () => {
+      try {
+        const res  = await apiCall('/cart'); // auth = true (default)
+        const cart = res.data;
+
+        document.getElementById('loading').classList.add('hidden');
+
+        if (cart.items.length === 0) {
+          document.getElementById('empty-cart').classList.remove('hidden');
+        } else {
+          document.getElementById('cart-content').classList.remove('hidden');
+          renderCartItems(cart.items);
+          updateSummary(cart);
+        }
+
+      } catch (err) {
+        document.getElementById('loading').innerHTML =
+          `<p class="text-red-400 text-center">โหลดตะกร้าไม่สำเร็จ: ${err.message}</p>`;
+      }
+    };
+
+    // ============================================================
+    // renderCartItems - วาดรายการสินค้าในตะกร้า
+    // ============================================================
+    const renderCartItems = (items) => {
+      const container = document.getElementById('cart-items');
+      container.innerHTML = items.map(item => `
+        <div id="cart-item-${item.cart_item_id}"
+             class="bg-white rounded-xl shadow p-4 flex items-center gap-4">
+          <!-- รูปสินค้า -->
+          <img src="${item.image_url || 'https://picsum.photos/400/400'}"
+               alt="${item.name}"
+               class="w-20 h-20 object-cover rounded-lg flex-shrink-0" />
+
+          <!-- ข้อมูลสินค้า -->
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-gray-800 text-sm truncate">${item.name}</p>
+            <p class="text-orange-500 font-bold">${formatPrice(item.price)}</p>
+
+            <!-- ควบคุมจำนวน -->
+            <div class="flex items-center gap-2 mt-2">
+              <button onclick="changeQty(${item.cart_item_id}, ${item.quantity - 1})"
+                      class="w-7 h-7 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-bold transition">
+                −
+              </button>
+              <span class="w-8 text-center font-semibold text-gray-800">${item.quantity}</span>
+              <button onclick="changeQty(${item.cart_item_id}, ${item.quantity + 1})"
+                      class="w-7 h-7 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-bold transition">
+                +
+              </button>
+            </div>
+          </div>
+
+          <!-- ราคารวม + ลบ -->
+          <div class="text-right flex-shrink-0">
+            <p class="font-bold text-gray-800">${formatPrice(item.subtotal)}</p>
+            <button onclick="removeItem(${item.cart_item_id})"
+                    class="text-red-400 hover:text-red-600 text-xs mt-2 transition">
+              🗑️ ลบ
+            </button>
+          </div>
+        </div>
+      `).join('');
+    };
+
+    // ============================================================
+    // updateSummary - อัปเดตสรุปราคา
+    // ============================================================
+    const updateSummary = (cart) => {
+      document.getElementById('summary-count').textContent   = cart.item_count;
+      document.getElementById('summary-subtotal').textContent = formatPrice(cart.total_price);
+      document.getElementById('summary-total').textContent    = formatPrice(cart.total_price);
+    };
+
+    // ============================================================
+    // changeQty - เปลี่ยนจำนวนสินค้า
+    // ============================================================
+    const changeQty = async (itemId, newQty) => {
+      try {
+        // PUT /api/cart/:itemId พร้อมส่ง quantity ใหม่
+        const res  = await apiCall(`/cart/${itemId}`, 'PUT', { quantity: newQty });
+        const cart = res.data;
+
+        if (cart.items.length === 0) {
+          // Cart ว่าง → แสดง Empty State
+          document.getElementById('cart-content').classList.add('hidden');
+          document.getElementById('empty-cart').classList.remove('hidden');
+        } else {
+          renderCartItems(cart.items);
+          updateSummary(cart);
+          updateNavbar();
+        }
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    };
+
+    // ============================================================
+    // removeItem - ลบสินค้าออกจากตะกร้า
+    // ============================================================
+    const removeItem = async (itemId) => {
+      if (!confirm('ต้องการลบสินค้าชิ้นนี้ออกจากตะกร้า?')) return;
+
+      try {
+        const res  = await apiCall(`/cart/${itemId}`, 'DELETE');
+        const cart = res.data;
+
+        if (cart.items.length === 0) {
+          document.getElementById('cart-content').classList.add('hidden');
+          document.getElementById('empty-cart').classList.remove('hidden');
+        } else {
+          renderCartItems(cart.items);
+          updateSummary(cart);
+          updateNavbar();
+        }
+        showAlert('ลบสินค้าออกจากตะกร้าแล้ว');
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    };
+
+    // ============================================================
+    // goToCheckout - ไปหน้า Checkout
+    // ============================================================
+    const goToCheckout = () => {
+      // ตรวจว่าตะกร้าไม่ว่าง (UI ปกติ ถ้าผ่านมาถึงจุดนี้แสดงว่ามีสินค้าแล้ว)
+      window.location.href = 'checkout.html';
+    };
+  </script>
+</body>
+</html>

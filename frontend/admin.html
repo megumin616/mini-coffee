@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — Mini Coffee</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+  <!-- NAVBAR (Admin Style) -->
+  <nav class="bg-gray-900 text-white shadow-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl font-bold text-orange-400">🛒 Mini Coffee</span>
+        <span class="bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">ADMIN</span>
+      </div>
+      <div class="flex items-center gap-4 text-sm">
+        <a href="products.html" class="text-gray-300 hover:text-white transition">🛍️ หน้าสินค้า</a>
+        <a href="my-orders.html" class="text-gray-300 hover:text-white transition">📦 คำสั่งซื้อของฉัน</a>
+        <span id="admin-name" class="text-gray-300"></span>
+        <button onclick="logout()"
+                class="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded-lg transition text-xs font-medium">
+          ออกจากระบบ
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Not Admin -->
+  <div id="not-admin" class="hidden flex-1 flex items-center justify-center">
+    <div class="text-center py-20">
+      <div class="text-6xl mb-4">🚫</div>
+      <p class="text-gray-600 text-lg mb-2">ไม่มีสิทธิ์เข้าถึงหน้านี้</p>
+      <p class="text-gray-400 text-sm mb-6">เฉพาะ Admin เท่านั้น</p>
+      <a href="index.html" class="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition">กลับหน้าหลัก</a>
+    </div>
+  </div>
+
+  <!-- Admin Content -->
+  <main id="admin-content" class="hidden max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
+    <h1 class="text-2xl font-bold text-gray-800 mb-4">📊 Admin Dashboard</h1>
+
+    <div class="flex gap-2 mb-6 flex-wrap border-b border-gray-200 pb-2">
+      <button type="button" id="tab-btn-orders" onclick="showAdminTab('orders')"
+              class="px-4 py-2 rounded-t-lg text-sm font-semibold bg-orange-500 text-white">
+        📋 คำสั่งซื้อ
+      </button>
+      <button type="button" id="tab-btn-products" onclick="showAdminTab('products')"
+              class="px-4 py-2 rounded-t-lg text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300">
+        📦 สินค้า
+      </button>
+      <button type="button" id="tab-btn-users" onclick="showAdminTab('users')"
+              class="px-4 py-2 rounded-t-lg text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300">
+        👥 ผู้ใช้
+      </button>
+    </div>
+
+    <div id="panel-orders">
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" id="stats-cards">
+      <div class="bg-white rounded-xl shadow p-5">
+        <p class="text-sm text-gray-500 mb-1">คำสั่งซื้อทั้งหมด</p>
+        <p id="stat-total" class="text-3xl font-bold text-gray-800">-</p>
+      </div>
+      <div class="bg-white rounded-xl shadow p-5">
+        <p class="text-sm text-gray-500 mb-1">รอดำเนินการ</p>
+        <p id="stat-pending" class="text-3xl font-bold text-yellow-500">-</p>
+      </div>
+      <div class="bg-white rounded-xl shadow p-5">
+        <p class="text-sm text-gray-500 mb-1">จัดส่งแล้ว</p>
+        <p id="stat-delivered" class="text-3xl font-bold text-green-500">-</p>
+      </div>
+      <div class="bg-white rounded-xl shadow p-5">
+        <p class="text-sm text-gray-500 mb-1">ยอดขายรวม</p>
+        <p id="stat-revenue" class="text-xl font-bold text-orange-500">-</p>
+      </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="bg-white rounded-xl shadow overflow-hidden">
+      <div class="px-6 py-4 border-b flex items-center justify-between">
+        <h2 class="font-bold text-gray-800 text-lg">📋 รายการคำสั่งซื้อทั้งหมด</h2>
+        <button onclick="loadOrders()"
+                class="text-orange-500 hover:text-orange-700 text-sm font-medium">
+          🔄 รีเฟรช
+        </button>
+      </div>
+
+      <!-- Loading -->
+      <div id="table-loading" class="text-center py-12 text-gray-400">
+        <div class="text-4xl mb-2">⏳</div>
+        <p>กำลังโหลดข้อมูล...</p>
+      </div>
+
+      <!-- Table -->
+      <div id="table-wrapper" class="hidden overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-600 text-left">
+            <tr>
+              <th class="px-4 py-3 font-semibold">Order ID</th>
+              <th class="px-4 py-3 font-semibold">ลูกค้า</th>
+              <th class="px-4 py-3 font-semibold">ยอดรวม</th>
+              <th class="px-4 py-3 font-semibold">ชำระเงิน</th>
+              <th class="px-4 py-3 font-semibold">สถานะ</th>
+              <th class="px-4 py-3 font-semibold">วันที่</th>
+              <th class="px-4 py-3 font-semibold">รายละเอียด</th>
+            </tr>
+          </thead>
+          <tbody id="orders-tbody" class="divide-y divide-gray-100"></tbody>
+        </table>
+      </div>
+    </div>
+    </div>
+
+    <div id="panel-products" class="hidden">
+      <p class="text-sm text-gray-600 mb-4">สินค้าที่ปิดการแสดง (<span class="font-mono">is_active = 0</span>) จะไม่แสดงในหน้าร้าน — ลูกค้าเห็นเฉพาะสินค้าที่เปิดใช้งาน</p>
+      <div class="bg-white rounded-xl shadow overflow-hidden">
+        <div class="px-6 py-4 border-b flex flex-wrap items-center justify-between gap-2">
+          <h2 class="font-bold text-gray-800 text-lg">จัดการสินค้า</h2>
+          <div class="flex gap-2">
+            <button type="button" onclick="loadProducts()"
+                    class="text-orange-500 hover:text-orange-700 text-sm font-medium">🔄 รีเฟรช</button>
+            <button type="button" onclick="openProductModal(null)"
+                    class="bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg">+ เพิ่มสินค้า</button>
+          </div>
+        </div>
+        <div id="products-loading" class="text-center py-12 text-gray-400">
+          <div class="text-4xl mb-2">⏳</div>
+          <p>กำลังโหลด...</p>
+        </div>
+        <div id="products-wrapper" class="hidden overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-600 text-left">
+              <tr>
+                <th class="px-4 py-3 font-semibold">ID</th>
+                <th class="px-4 py-3 font-semibold">ชื่อ</th>
+                <th class="px-4 py-3 font-semibold">หมวด</th>
+                <th class="px-4 py-3 font-semibold">ราคา</th>
+                <th class="px-4 py-3 font-semibold">คงคลัง</th>
+                <th class="px-4 py-3 font-semibold">แสดงร้าน</th>
+                <th class="px-4 py-3 font-semibold">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="products-tbody" class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="panel-users" class="hidden">
+      <p class="text-sm text-gray-600 mb-4 max-w-3xl">
+        หลังแก้สิทธิ์หรือรหัส — ให้ผู้ใช้ <strong>เข้าสู่ระบบใหม่</strong> เพื่อให้ Token ตรงกับข้อมูลล่าสุด
+      </p>
+      <div class="bg-white rounded-xl shadow overflow-hidden">
+        <div class="px-6 py-4 border-b flex flex-wrap items-center justify-between gap-2">
+          <h2 class="font-bold text-gray-800 text-lg">รายชื่อผู้ใช้</h2>
+          <div class="flex gap-2">
+            <button type="button" onclick="loadUsers()"
+                    class="text-orange-500 hover:text-orange-700 text-sm font-medium">🔄 รีเฟรช</button>
+            <button type="button" onclick="openUserModal(null)"
+                    class="bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg">+ เพิ่มผู้ใช้</button>
+          </div>
+        </div>
+        <div id="users-loading" class="text-center py-12 text-gray-400">
+          <div class="text-4xl mb-2">⏳</div>
+          <p>กำลังโหลด...</p>
+        </div>
+        <div id="users-wrapper" class="hidden overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-600 text-left">
+              <tr>
+                <th class="px-4 py-3 font-semibold">ID</th>
+                <th class="px-4 py-3 font-semibold">ชื่อ</th>
+                <th class="px-4 py-3 font-semibold">อีเมล</th>
+                <th class="px-4 py-3 font-semibold">โทร</th>
+                <th class="px-4 py-3 font-semibold">สิทธิ์</th>
+                <th class="px-4 py-3 font-semibold">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody" class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Product form modal -->
+  <div id="product-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between p-5 border-b sticky top-0 bg-white">
+        <h3 id="product-modal-title" class="font-bold text-gray-800 text-lg">สินค้า</h3>
+        <button type="button" onclick="closeProductModal()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+      </div>
+      <div class="p-5 space-y-3 text-sm">
+        <input type="hidden" id="product-form-id" value="" />
+        <div>
+          <label class="block text-gray-600 mb-1">ชื่อสินค้า *</label>
+          <input id="product-form-name" class="w-full border rounded-lg px-3 py-2" />
+        </div>
+        <div>
+          <label class="block text-gray-600 mb-1">คำอธิบาย</label>
+          <textarea id="product-form-desc" rows="3" class="w-full border rounded-lg px-3 py-2 resize-y"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-gray-600 mb-1">ราคา (บาท) *</label>
+            <input id="product-form-price" type="number" min="0" step="0.01" class="w-full border rounded-lg px-3 py-2" />
+          </div>
+          <div>
+            <label class="block text-gray-600 mb-1">คงคลัง</label>
+            <input id="product-form-stock" type="number" min="0" step="1" class="w-full border rounded-lg px-3 py-2" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-gray-600 mb-1">URL รูปภาพ</label>
+          <input id="product-form-image" class="w-full border rounded-lg px-3 py-2" placeholder="https://..." />
+        </div>
+        <div>
+          <label class="block text-gray-600 mb-1">หมวดหมู่</label>
+          <select id="product-form-category" class="w-full border rounded-lg px-3 py-2 bg-white">
+            <option value="">— เลือกหมวดหมู่ —</option>
+          </select>
+          <p class="text-xs text-gray-400 mt-1">รายการเดียวกับตัวกรองหมวดในหน้าร้าน (จากสินค้าที่แสดง)</p>
+        </div>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input id="product-form-active" type="checkbox" class="rounded" checked />
+          <span>แสดงในหน้าร้าน (เปิดใช้งาน)</span>
+        </label>
+        <button type="button" onclick="submitProductForm()"
+                class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl mt-2">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- User form modal -->
+  <div id="user-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between p-5 border-b sticky top-0 bg-white">
+        <h3 id="user-modal-title" class="font-bold text-gray-800 text-lg">ผู้ใช้</h3>
+        <button type="button" onclick="closeUserModal()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+      </div>
+      <div class="p-5 space-y-3 text-sm">
+        <input type="hidden" id="user-form-id" value="" />
+        <div>
+          <label class="block text-gray-600 mb-1">ชื่อ *</label>
+          <input id="user-form-name" class="w-full border rounded-lg px-3 py-2" />
+        </div>
+        <div>
+          <label class="block text-gray-600 mb-1">อีเมล *</label>
+          <input id="user-form-email" type="email" class="w-full border rounded-lg px-3 py-2" />
+        </div>
+        <div>
+          <label class="block text-gray-600 mb-1" id="user-form-password-label">รหัสผ่าน *</label>
+          <input id="user-form-password" type="password" class="w-full border rounded-lg px-3 py-2" placeholder="เว้นว่างถ้าไม่เปลี่ยน (แก้ไข)" />
+        </div>
+        <div>
+          <label class="block text-gray-600 mb-1">โทรศัพท์</label>
+          <input id="user-form-phone" class="w-full border rounded-lg px-3 py-2" />
+        </div>
+        <div>
+          <label class="block text-gray-600 mb-1">ที่อยู่</label>
+          <textarea id="user-form-address" rows="2" class="w-full border rounded-lg px-3 py-2 resize-y"></textarea>
+        </div>
+        <div>
+          <label class="block text-gray-600 mb-1">สิทธิ์</label>
+          <select id="user-form-role" class="w-full border rounded-lg px-3 py-2">
+            <option value="USER">USER</option>
+            <option value="ADMIN">ADMIN</option>
+          </select>
+        </div>
+        <button type="button" onclick="submitUserForm()"
+                class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl mt-2">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Order Detail Modal -->
+  <div id="detail-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
+      <div class="flex items-center justify-between p-5 border-b sticky top-0 bg-white rounded-t-2xl">
+        <h3 class="font-bold text-gray-800 text-lg">รายละเอียด Order #<span id="modal-order-id"></span></h3>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+      </div>
+
+      <div class="p-5 space-y-4" id="modal-content">
+        <!-- โหลดโดย JS -->
+      </div>
+    </div>
+  </div>
+
+  <footer class="bg-gray-800 text-gray-400 text-center py-6 text-sm mt-auto">© 2024 Mini Shopee Admin</footer>
+
+  <script src="js/api.js"></script>
+  <script>
+    // ============================================================
+    // ตรวจสอบ Role ตอนเริ่ม
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      const user = getUser();
+
+      // ถ้าไม่ได้ Login หรือไม่ใช่ Admin → แสดงหน้า Access Denied
+      if (!isLoggedIn() || !user || user.role !== 'ADMIN') {
+        document.getElementById('not-admin').classList.remove('hidden');
+        return;
+      }
+
+      // Admin → แสดง Dashboard
+      document.getElementById('admin-content').classList.remove('hidden');
+      document.getElementById('admin-name').textContent = `👤 ${user.name}`;
+
+      loadOrders();
+    });
+
+    // ============================================================
+    // loadOrders - ดึง Order ทั้งหมดจาก API (Admin Only)
+    // ============================================================
+    // Flow:
+    // 1. เรียก GET /api/admin พร้อม Token ใน Header
+    // 2. Server ตรวจ Token → ตรวจ Role = 'ADMIN'
+    // 3. ถ้าผ่าน → ดึง Orders ทั้งหมดจาก DB
+    // 4. ส่งกลับมา → Render เป็นตาราง
+    // ============================================================
+    async function loadOrders() {
+      document.getElementById('table-loading').classList.remove('hidden');
+      document.getElementById('table-wrapper').classList.add('hidden');
+
+      try {
+        const res    = await apiCall('/admin');
+        const orders = res.data;
+
+        // อัปเดต Stats
+        const pending   = orders.filter(o => o.status === 'PENDING').length;
+        const delivered = orders.filter(o => o.status === 'DELIVERED').length;
+        const revenue   = orders.reduce((sum, o) => sum + parseFloat(o.total_price), 0);
+
+        document.getElementById('stat-total').textContent     = orders.length;
+        document.getElementById('stat-pending').textContent   = pending;
+        document.getElementById('stat-delivered').textContent = delivered;
+        document.getElementById('stat-revenue').textContent   = formatPrice(revenue);
+
+        // Render ตาราง
+        renderOrdersTable(orders);
+
+      } catch (err) {
+        document.getElementById('table-loading').innerHTML =
+          `<p class="text-red-400 text-center py-8">โหลดข้อมูลไม่สำเร็จ: ${err.message}</p>`;
+      }
+    }
+
+    // ============================================================
+    // renderOrdersTable - วาดตาราง Orders
+    // ============================================================
+    function renderOrdersTable(orders) {
+      document.getElementById('table-loading').classList.add('hidden');
+      document.getElementById('table-wrapper').classList.remove('hidden');
+
+      const statusConfig = {
+        PENDING:   { label: 'รอดำเนินการ', color: 'bg-yellow-100 text-yellow-700' },
+        CONFIRMED: { label: 'ยืนยันแล้ว',  color: 'bg-blue-100 text-blue-700' },
+        SHIPPING:  { label: 'กำลังจัดส่ง', color: 'bg-purple-100 text-purple-700' },
+        DELIVERED: { label: 'ส่งแล้ว',      color: 'bg-green-100 text-green-700' },
+        CANCELLED: { label: 'ยกเลิก',       color: 'bg-red-100 text-red-700' }
+      };
+
+      const tbody = document.getElementById('orders-tbody');
+
+      if (orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-10 text-gray-400">ยังไม่มีคำสั่งซื้อ</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = orders.map(order => {
+        const status = statusConfig[order.status] || { label: order.status, color: 'bg-gray-100 text-gray-600' };
+        const date   = new Date(order.created_at).toLocaleDateString('th-TH', {
+          day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+
+        return `
+          <tr class="hover:bg-gray-50 transition">
+            <td class="px-4 py-3 font-mono font-bold text-orange-500">#${order.id}</td>
+            <td class="px-4 py-3">
+              <p class="font-medium text-gray-800">${order.user_name}</p>
+              <p class="text-xs text-gray-400">${order.user_email}</p>
+            </td>
+            <td class="px-4 py-3 font-bold text-gray-800">${formatPrice(order.total_price)}</td>
+            <td class="px-4 py-3">
+              <span class="px-2 py-1 rounded text-xs font-medium ${order.payment_method === 'COD' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}">
+                ${order.payment_method === 'COD' ? '💵 COD' : '📱 QR'}
+              </span>
+            </td>
+            <td class="px-4 py-3">
+              <span class="px-2 py-1 rounded-full text-xs font-medium ${status.color}">
+                ${status.label}
+              </span>
+            </td>
+            <td class="px-4 py-3 text-xs text-gray-500">${date}</td>
+            <td class="px-4 py-3">
+              <button onclick="viewOrderDetail(${order.id})"
+                      class="text-orange-500 hover:text-orange-700 font-medium text-xs underline transition">
+                ดูรายละเอียด
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ============================================================
+    // viewOrderDetail - ดูรายละเอียด Order ใน Modal
+    // ============================================================
+    async function viewOrderDetail(orderId) {
+      document.getElementById('modal-order-id').textContent = orderId;
+      document.getElementById('modal-content').innerHTML    = '<p class="text-center text-gray-400 py-8">⏳ กำลังโหลด...</p>';
+      document.getElementById('detail-modal').classList.remove('hidden');
+
+      try {
+        // GET /api/admin/:id → ต้องเป็น Admin เท่านั้น
+        const res   = await apiCall(`/admin/${orderId}`);
+        const order = res.data;
+
+        const statusOptions = ['PENDING','CONFIRMED','SHIPPING','DELIVERED','CANCELLED'];
+
+        document.getElementById('modal-content').innerHTML = `
+          <!-- ข้อมูลลูกค้า -->
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-xs text-gray-500 font-semibold uppercase mb-2">ข้อมูลลูกค้า</p>
+            <p class="font-bold text-gray-800">${order.user_name}</p>
+            <p class="text-sm text-gray-600">${order.user_email}</p>
+            <p class="text-sm text-gray-600">${order.user_phone || '-'}</p>
+          </div>
+
+          <!-- ที่อยู่ -->
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-xs text-gray-500 font-semibold uppercase mb-2">ที่อยู่จัดส่ง</p>
+            <p class="text-sm text-gray-700">${order.address}</p>
+          </div>
+
+          <!-- รายการสินค้า -->
+          <div>
+            <p class="text-xs text-gray-500 font-semibold uppercase mb-2">รายการสินค้า</p>
+            <div class="space-y-2">
+              ${order.items.map(item => `
+                <div class="flex items-center gap-3 bg-gray-50 rounded-lg p-2">
+                  <img src="${item.image_url || 'https://picsum.photos/60'}"
+                       alt="${item.product_name}"
+                       class="w-12 h-12 object-cover rounded-lg" />
+                  <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-800">${item.product_name}</p>
+                    <p class="text-xs text-gray-500">x${item.quantity} × ${formatPrice(item.price)}</p>
+                  </div>
+                  <span class="font-bold text-gray-800 text-sm">${formatPrice(item.quantity * item.price)}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- ยอดรวม + วิธีชำระ -->
+          <div class="flex items-center justify-between bg-orange-50 rounded-xl p-4">
+            <div>
+              <p class="text-xs text-gray-500">วิธีชำระ: <strong>${order.payment_method === 'COD' ? 'เก็บเงินปลายทาง' : 'QR Code'}</strong></p>
+            </div>
+            <div class="text-right">
+              <p class="text-xs text-gray-500">ยอดรวม</p>
+              <p class="font-bold text-orange-500 text-xl">${formatPrice(order.total_price)}</p>
+            </div>
+          </div>
+
+          <!-- เปลี่ยนสถานะ -->
+          <div>
+            <p class="text-xs text-gray-500 font-semibold uppercase mb-2">อัปเดตสถานะ</p>
+            <div class="flex gap-2 flex-wrap">
+              ${statusOptions.map(s => `
+                <button onclick="updateStatus(${order.id}, '${s}')"
+                        class="px-3 py-1.5 text-xs rounded-lg border transition
+                               ${order.status === s
+                                 ? 'bg-orange-500 text-white border-orange-500 font-bold'
+                                 : 'border-gray-300 text-gray-600 hover:border-orange-400 hover:text-orange-500'}">
+                  ${s}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        document.getElementById('modal-content').innerHTML =
+          `<p class="text-red-400 text-center py-8">${err.message}</p>`;
+      }
+    }
+
+    // ============================================================
+    // updateStatus - อัปเดตสถานะ Order
+    // ============================================================
+    async function updateStatus(orderId, status) {
+      try {
+        await apiCall(`/admin/${orderId}/status`, 'PATCH', { status });
+        showAlert(`อัปเดตสถานะเป็น "${status}" สำเร็จ`);
+        closeModal();
+        loadOrders(); // โหลดใหม่
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('detail-modal').classList.add('hidden');
+    }
+
+    function showAdminTab(which) {
+      ['orders', 'products', 'users'].forEach((k) => {
+        const panel = document.getElementById('panel-' + k);
+        const btn = document.getElementById('tab-btn-' + k);
+        if (panel) panel.classList.toggle('hidden', k !== which);
+        if (btn) {
+          btn.className = k === which
+            ? 'px-4 py-2 rounded-t-lg text-sm font-semibold bg-orange-500 text-white'
+            : 'px-4 py-2 rounded-t-lg text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300';
+        }
+      });
+      if (which === 'users') loadUsers();
+      if (which === 'products') loadProducts();
+    }
+
+    let productsCache = [];
+    let usersCache = [];
+
+    async function loadProducts() {
+      const loading = document.getElementById('products-loading');
+      loading.classList.remove('hidden');
+      loading.innerHTML = '<div class="text-4xl mb-2">⏳</div><p>กำลังโหลด...</p>';
+      document.getElementById('products-wrapper').classList.add('hidden');
+      try {
+        const res = await apiCall('/admin/products');
+        productsCache = res.data;
+        renderProductsTable(res.data);
+      } catch (err) {
+        loading.innerHTML = `<p class="text-red-400 text-center py-8">โหลดไม่สำเร็จ: ${err.message}</p>`;
+      }
+    }
+
+    function renderProductsTable(products) {
+      document.getElementById('products-loading').classList.add('hidden');
+      document.getElementById('products-wrapper').classList.remove('hidden');
+      const tbody = document.getElementById('products-tbody');
+      if (!products.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-10 text-gray-400">ยังไม่มีสินค้า</td></tr>';
+        return;
+      }
+      tbody.innerHTML = products.map((p) => {
+        const active = Number(p.is_active) === 1;
+        return `
+          <tr class="hover:bg-gray-50 transition">
+            <td class="px-4 py-3 font-mono text-gray-600">${p.id}</td>
+            <td class="px-4 py-3 font-medium text-gray-800 max-w-xs truncate">${escapeHtml(p.name)}</td>
+            <td class="px-4 py-3 text-gray-600">${escapeHtml(p.category || '-')}</td>
+            <td class="px-4 py-3">${formatPrice(p.price)}</td>
+            <td class="px-4 py-3">${p.stock}</td>
+            <td class="px-4 py-3">
+              <span class="px-2 py-1 rounded text-xs font-medium ${active ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}">
+                ${active ? 'แสดง' : 'ซ่อน'}
+              </span>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              <button type="button" onclick="openProductModal(${p.id})" class="text-orange-600 hover:underline text-xs font-medium mr-2">แก้ไข</button>
+              <button type="button" onclick="removeProduct(${p.id})" class="text-red-600 hover:underline text-xs font-medium">ซ่อนในหน้าร้าน</button>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    function escapeHtml(s) {
+      if (!s) return '';
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    // สร้างรายการหมวดแบบเดียวกับ products.html (buildCategoryFilters จาก GET /api/products)
+    async function populateProductCategoryDropdown(selectedCategory) {
+      const select = document.getElementById('product-form-category');
+      let categories = [];
+      try {
+        const res = await apiCall('/products', 'GET', null, false);
+        categories = [...new Set(res.data.map((p) => p.category).filter(Boolean))];
+      } catch (e) {
+        categories = [];
+      }
+      const sel = selectedCategory ? String(selectedCategory) : '';
+      if (sel && !categories.includes(sel)) {
+        categories.push(sel);
+      }
+      select.innerHTML = '<option value="">— เลือกหมวดหมู่ —</option>';
+      categories.forEach((cat) => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        select.appendChild(opt);
+      });
+      select.value = sel;
+    }
+
+    async function openProductModal(productId) {
+      document.getElementById('product-modal').classList.remove('hidden');
+      const idEl = document.getElementById('product-form-id');
+
+      let categoryForDropdown = '';
+      if (productId != null) {
+        const p = productsCache.find((x) => x.id === productId);
+        if (!p) return;
+        categoryForDropdown = p.category || '';
+      }
+      await populateProductCategoryDropdown(categoryForDropdown);
+
+      if (productId == null) {
+        document.getElementById('product-modal-title').textContent = 'เพิ่มสินค้า';
+        idEl.value = '';
+        document.getElementById('product-form-name').value = '';
+        document.getElementById('product-form-desc').value = '';
+        document.getElementById('product-form-price').value = '';
+        document.getElementById('product-form-stock').value = '0';
+        document.getElementById('product-form-image').value = '';
+        document.getElementById('product-form-category').value = '';
+        document.getElementById('product-form-active').checked = true;
+      } else {
+        const p = productsCache.find((x) => x.id === productId);
+        if (!p) return;
+        document.getElementById('product-modal-title').textContent = 'แก้ไขสินค้า #' + p.id;
+        idEl.value = String(p.id);
+        document.getElementById('product-form-name').value = p.name || '';
+        document.getElementById('product-form-desc').value = p.description || '';
+        document.getElementById('product-form-price').value = p.price;
+        document.getElementById('product-form-stock').value = p.stock;
+        document.getElementById('product-form-image').value = p.image_url || '';
+        document.getElementById('product-form-category').value = p.category || '';
+        document.getElementById('product-form-active').checked = Number(p.is_active) === 1;
+      }
+    }
+
+    function closeProductModal() {
+      document.getElementById('product-modal').classList.add('hidden');
+    }
+
+    async function submitProductForm() {
+      const id = document.getElementById('product-form-id').value;
+      const body = {
+        name: document.getElementById('product-form-name').value.trim(),
+        description: document.getElementById('product-form-desc').value.trim() || null,
+        price: document.getElementById('product-form-price').value,
+        stock: document.getElementById('product-form-stock').value,
+        image_url: document.getElementById('product-form-image').value.trim() || null,
+        category: document.getElementById('product-form-category').value || null,
+        is_active: document.getElementById('product-form-active').checked
+      };
+      try {
+        if (!id) {
+          await apiCall('/admin/products', 'POST', body);
+          showAlert('สร้างสินค้าสำเร็จ');
+        } else {
+          await apiCall('/admin/products/' + id, 'PUT', body);
+          showAlert('บันทึกสินค้าสำเร็จ');
+        }
+        closeProductModal();
+        await loadProducts();
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    async function removeProduct(productId) {
+      if (!confirm('ซ่อนสินค้านี้จากหน้าร้าน? (ลูกค้าจะไม่เห็นจนกว่าจะเปิดแสดงอีก)')) return;
+      try {
+        await apiCall('/admin/products/' + productId, 'DELETE');
+        showAlert('ซ่อนสินค้าแล้ว');
+        await loadProducts();
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    function openUserEdit(userId) {
+      const u = usersCache.find((x) => String(x.id) === String(userId));
+      if (u) openUserModal(u);
+    }
+
+    function openUserModal(user) {
+      document.getElementById('user-modal').classList.remove('hidden');
+      const pwd = document.getElementById('user-form-password');
+      const pwdLabel = document.getElementById('user-form-password-label');
+      if (!user) {
+        document.getElementById('user-modal-title').textContent = 'เพิ่มผู้ใช้';
+        document.getElementById('user-form-id').value = '';
+        document.getElementById('user-form-name').value = '';
+        document.getElementById('user-form-email').value = '';
+        pwd.value = '';
+        pwd.required = true;
+        pwd.placeholder = 'อย่างน้อย 6 ตัว';
+        pwdLabel.textContent = 'รหัสผ่าน *';
+        document.getElementById('user-form-phone').value = '';
+        document.getElementById('user-form-address').value = '';
+        document.getElementById('user-form-role').value = 'USER';
+      } else {
+        document.getElementById('user-modal-title').textContent = 'แก้ไขผู้ใช้ #' + user.id;
+        document.getElementById('user-form-id').value = String(user.id);
+        document.getElementById('user-form-name').value = user.name || '';
+        document.getElementById('user-form-email').value = user.email || '';
+        pwd.value = '';
+        pwd.required = false;
+        pwd.placeholder = 'เว้นว่างถ้าไม่เปลี่ยนรหัส';
+        pwdLabel.textContent = 'รหัสผ่านใหม่ (ไม่บังคับ)';
+        document.getElementById('user-form-phone').value = user.phone || '';
+        document.getElementById('user-form-address').value = user.address || '';
+        document.getElementById('user-form-role').value = user.role || 'USER';
+      }
+    }
+
+    function closeUserModal() {
+      document.getElementById('user-modal').classList.add('hidden');
+    }
+
+    async function submitUserForm() {
+      const id = document.getElementById('user-form-id').value;
+      const pwd = document.getElementById('user-form-password').value;
+      const body = {
+        name: document.getElementById('user-form-name').value.trim(),
+        email: document.getElementById('user-form-email').value.trim(),
+        phone: document.getElementById('user-form-phone').value.trim() || null,
+        address: document.getElementById('user-form-address').value.trim() || null,
+        role: document.getElementById('user-form-role').value
+      };
+      if (pwd) body.password = pwd;
+      try {
+        if (!id) {
+          if (!pwd || pwd.length < 6) {
+            showAlert('กรุณาระบุรหัสผ่านอย่างน้อย 6 ตัว', 'error');
+            return;
+          }
+          await apiCall('/admin/users', 'POST', { ...body, password: pwd });
+          showAlert('สร้างผู้ใช้สำเร็จ');
+        } else {
+          await apiCall('/admin/users/' + id, 'PUT', body);
+          showAlert('บันทึกผู้ใช้สำเร็จ');
+        }
+        closeUserModal();
+        await loadUsers();
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    async function deleteUserById(userId) {
+      if (!confirm('ลบผู้ใช้นี้? (ไม่สามารถลบได้ถ้ามีประวัติคำสั่งซื้อ)')) return;
+      try {
+        await apiCall('/admin/users/' + userId, 'DELETE');
+        showAlert('ลบผู้ใช้สำเร็จ');
+        await loadUsers();
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    async function loadUsers() {
+      const loading = document.getElementById('users-loading');
+      loading.classList.remove('hidden');
+      loading.innerHTML = '<div class="text-4xl mb-2">⏳</div><p>กำลังโหลด...</p>';
+      document.getElementById('users-wrapper').classList.add('hidden');
+      try {
+        const res = await apiCall('/admin/users');
+        usersCache = res.data;
+        renderUsersTable(res.data);
+      } catch (err) {
+        loading.innerHTML = `<p class="text-red-400 text-center py-8">โหลดไม่สำเร็จ: ${err.message}</p>`;
+      }
+    }
+
+    function renderUsersTable(users) {
+      document.getElementById('users-loading').classList.add('hidden');
+      document.getElementById('users-wrapper').classList.remove('hidden');
+      const tbody = document.getElementById('users-tbody');
+      const me = getUser();
+      if (!users.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-gray-400">ไม่มีผู้ใช้</td></tr>';
+        return;
+      }
+      tbody.innerHTML = users.map((u) => {
+        const isAdmin = u.role === 'ADMIN';
+        const isSelf = me && String(u.id) === String(me.id);
+        return `
+          <tr class="hover:bg-gray-50 transition">
+            <td class="px-4 py-3 font-mono text-gray-600">${u.id}</td>
+            <td class="px-4 py-3 font-medium text-gray-800">${escapeHtml(u.name)}</td>
+            <td class="px-4 py-3 text-gray-600">${escapeHtml(u.email)}</td>
+            <td class="px-4 py-3 text-gray-500 text-xs">${escapeHtml(u.phone || '-')}</td>
+            <td class="px-4 py-3">
+              <span class="px-2 py-1 rounded text-xs font-medium ${isAdmin ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-700'}">
+                ${isAdmin ? 'ADMIN' : 'USER'}
+              </span>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              <button type="button" onclick="openUserEdit(${u.id})"
+                      class="text-orange-600 hover:underline text-xs font-medium mr-2">แก้ไข</button>
+              ${isSelf
+                ? '<span class="text-xs text-gray-400">(ไม่ลบตัวเอง)</span>'
+                : `<button type="button" onclick="deleteUserById(${u.id})" class="text-red-600 hover:underline text-xs font-medium">ลบ</button>`
+              }
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeModal();
+        closeProductModal();
+        closeUserModal();
+      }
+    });
+  </script>
+</body>
+</html>

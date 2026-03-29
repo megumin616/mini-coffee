@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ชำระเงิน — Mini Shopee</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+
+  <!-- NAVBAR -->
+  <nav class="bg-orange-500 text-white shadow-md sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="index.html" class="text-2xl font-bold">🛒 Mini Shopee</a>
+      <div class="flex items-center gap-4 text-sm font-medium">
+        <a href="products.html" class="hover:text-orange-100 transition">สินค้า</a>
+        <a id="nav-orders" href="my-orders.html" class="hidden hover:text-orange-100 transition">📦 คำสั่งซื้อ</a>
+        <span id="nav-user" class="hidden text-orange-100"></span>
+        <a id="nav-admin" href="admin.html" class="hidden bg-white text-orange-500 px-3 py-1 rounded-full text-xs font-bold">Admin</a>
+        <button id="nav-logout" onclick="logout()" class="hidden bg-orange-600 hover:bg-orange-700 px-3 py-1 rounded">ออกจากระบบ</button>
+        <a id="nav-login" href="login.html" class="bg-white text-orange-500 px-4 py-1 rounded-full font-semibold">เข้าสู่ระบบ</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="bg-white border-b">
+    <div class="max-w-4xl mx-auto px-4 py-3 text-sm text-gray-500 flex gap-2">
+      <a href="cart.html" class="hover:text-orange-500">ตะกร้า</a>
+      <span>›</span>
+      <span class="text-orange-500 font-medium">ชำระเงิน</span>
+    </div>
+  </div>
+
+  <main class="max-w-4xl mx-auto px-4 py-8 flex-1 w-full">
+    <h1 class="text-2xl font-bold text-gray-800 mb-6">💳 ยืนยันคำสั่งซื้อ</h1>
+
+    <!-- Not logged in -->
+    <div id="not-logged-in" class="hidden text-center py-20">
+      <p class="text-gray-500 mb-4">กรุณาเข้าสู่ระบบก่อน</p>
+      <a href="login.html" class="bg-orange-500 text-white px-6 py-2 rounded-lg">เข้าสู่ระบบ</a>
+    </div>
+
+    <!-- Checkout Form -->
+    <div id="checkout-form" class="hidden grid md:grid-cols-2 gap-6">
+
+      <!-- ซ้าย: ที่อยู่ + วิธีชำระ -->
+      <div class="space-y-5">
+
+        <!-- ที่อยู่จัดส่ง -->
+        <div class="bg-white rounded-xl shadow p-5">
+          <h2 class="font-bold text-gray-800 mb-4">📍 ที่อยู่จัดส่ง</h2>
+          <div class="space-y-3">
+            <div>
+              <label class="text-sm text-gray-600 mb-1 block">ชื่อ-นามสกุล</label>
+              <input id="name" type="text"
+                     class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
+            </div>
+            <div>
+              <label class="text-sm text-gray-600 mb-1 block">เบอร์โทรศัพท์</label>
+              <input id="phone" type="tel"
+                     class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
+            </div>
+            <div>
+              <label class="text-sm text-gray-600 mb-1 block">ที่อยู่จัดส่ง <span class="text-red-500">*</span></label>
+              <textarea id="address" rows="3" placeholder="บ้านเลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด รหัสไปรษณีย์"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- วิธีชำระเงิน -->
+        <div class="bg-white rounded-xl shadow p-5">
+          <h2 class="font-bold text-gray-800 mb-4">💳 วิธีชำระเงิน</h2>
+          <div class="space-y-3">
+
+            <!-- COD -->
+            <label class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition
+                          peer-checked:border-orange-400 has-[:checked]:border-orange-400 has-[:checked]:bg-orange-50">
+              <input type="radio" name="payment" value="COD" class="accent-orange-500"
+                     onchange="selectPayment('COD')" checked />
+              <div>
+                <p class="font-semibold text-gray-800">💵 เก็บเงินปลายทาง (COD)</p>
+                <p class="text-xs text-gray-500">ชำระเมื่อได้รับสินค้า</p>
+              </div>
+            </label>
+
+            <!-- QR Code -->
+            <label class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition
+                          has-[:checked]:border-orange-400 has-[:checked]:bg-orange-50">
+              <input type="radio" name="payment" value="QR" class="accent-orange-500"
+                     onchange="selectPayment('QR')" />
+              <div>
+                <p class="font-semibold text-gray-800">📱 QR Code (PromptPay)</p>
+                <p class="text-xs text-gray-500">สแกนชำระผ่าน Mobile Banking</p>
+              </div>
+            </label>
+          </div>
+
+          <!-- QR Code Mock -->
+          <div id="qr-section" class="hidden mt-4 text-center p-4 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+            <p class="text-sm text-gray-500 mb-3">สแกน QR Code เพื่อชำระเงิน</p>
+            <!-- Mock QR Code (Static Image) -->
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=PromptPay:0812345678"
+                 alt="QR Code"
+                 class="mx-auto rounded-lg border-4 border-white shadow" />
+            <p class="text-xs text-gray-400 mt-2">เลขพร้อมเพย์: 081-234-5678</p>
+            <p class="text-xs text-orange-500 font-medium mt-1">⚠️ Mock เท่านั้น ไม่มีการตรวจสอบจริง</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ขวา: สรุปสินค้า -->
+      <div>
+        <div class="bg-white rounded-xl shadow p-5 sticky top-20">
+          <h2 class="font-bold text-gray-800 mb-4">📋 สรุปรายการสั่งซื้อ</h2>
+
+          <!-- รายการสินค้า -->
+          <div id="order-items" class="space-y-3 max-h-64 overflow-y-auto mb-4"></div>
+
+          <hr class="my-3" />
+
+          <!-- ราคา -->
+          <div class="space-y-2 text-sm text-gray-600">
+            <div class="flex justify-between">
+              <span>ค่าสินค้า</span>
+              <span id="subtotal">฿0</span>
+            </div>
+            <div class="flex justify-between">
+              <span>ค่าจัดส่ง</span>
+              <span class="text-green-600 font-medium">ฟรี</span>
+            </div>
+            <div class="flex justify-between font-bold text-gray-800 text-base border-t pt-2">
+              <span>ยอดรวมทั้งสิ้น</span>
+              <span id="total-price" class="text-orange-500 text-xl">฿0</span>
+            </div>
+          </div>
+
+          <!-- Error -->
+          <div id="error-msg" class="hidden bg-red-50 border border-red-200 text-red-700 text-xs px-3 py-2 rounded-lg mt-3"></div>
+
+          <!-- ปุ่มยืนยัน -->
+          <button onclick="placeOrder()"
+                  id="place-order-btn"
+                  class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition mt-4">
+            ✅ ยืนยันคำสั่งซื้อ
+          </button>
+          <a href="cart.html" class="block text-center text-gray-400 hover:text-gray-600 text-sm mt-2">← กลับตะกร้า</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="success-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl">
+        <div class="text-6xl mb-4">🎉</div>
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">สั่งซื้อสำเร็จ!</h2>
+        <p class="text-gray-500 text-sm mb-2">คำสั่งซื้อของคุณถูกบันทึกเรียบร้อยแล้ว</p>
+        <p class="text-gray-500 text-sm mb-6">Order #<span id="order-id" class="font-bold text-orange-500"></span></p>
+        <a href="my-orders.html"
+           class="block bg-white border-2 border-orange-500 text-orange-500 hover:bg-orange-50 font-bold py-3 rounded-xl transition mb-2">
+          📦 ดูคำสั่งซื้อ &amp; สถานะ
+        </a>
+        <a href="products.html"
+           class="block bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition">
+          🛍️ ช้อปต่อ
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bg-gray-800 text-gray-400 text-center py-6 text-sm mt-auto">© 2024 Mini Shopee</footer>
+
+  <script src="js/api.js"></script>
+  <script>
+    let selectedPayment = 'COD';
+    let cartData        = null;
+
+    // ============================================================
+    // โหลดข้อมูลตอนเริ่ม
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', async () => {
+      updateNavbar();
+
+      if (!isLoggedIn()) {
+        document.getElementById('not-logged-in').classList.remove('hidden');
+        return;
+      }
+
+      document.getElementById('checkout-form').classList.remove('hidden');
+
+      // โหลด Cart และ User Info พร้อมกัน
+      try {
+        const [cartRes] = await Promise.all([
+          apiCall('/cart')
+        ]);
+
+        cartData = cartRes.data;
+
+        // ถ้า Cart ว่าง → กลับไป Cart
+        if (cartData.items.length === 0) {
+          alert('ตะกร้าว่างเปล่า กรุณาเพิ่มสินค้าก่อน');
+          window.location.href = 'cart.html';
+          return;
+        }
+
+        // แสดงรายการสินค้า
+        renderOrderItems(cartData.items);
+        document.getElementById('subtotal').textContent    = formatPrice(cartData.total_price);
+        document.getElementById('total-price').textContent = formatPrice(cartData.total_price);
+
+        // Pre-fill ข้อมูล User
+        const user = getUser();
+        if (user) {
+          document.getElementById('name').value = user.name || '';
+          document.getElementById('phone').value = user.phone || '';
+          document.getElementById('address').value = user.address || '';
+        }
+
+      } catch (err) {
+        alert('ไม่สามารถโหลดข้อมูลได้: ' + err.message);
+      }
+    });
+
+    // ============================================================
+    // renderOrderItems - แสดงรายการสินค้าใน Summary
+    // ============================================================
+    const renderOrderItems = (items) => {
+      document.getElementById('order-items').innerHTML = items.map(item => `
+        <div class="flex items-center gap-3">
+          <img src="${item.image_url || 'https://picsum.photos/80'}"
+               alt="${item.name}"
+               class="w-12 h-12 object-cover rounded-lg flex-shrink-0" />
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-gray-800 truncate">${item.name}</p>
+            <p class="text-xs text-gray-500">x${item.quantity}</p>
+          </div>
+          <span class="text-sm font-bold text-gray-800 flex-shrink-0">${formatPrice(item.subtotal)}</span>
+        </div>
+      `).join('');
+    };
+
+    // ============================================================
+    // selectPayment - เลือกวิธีชำระเงิน
+    // ============================================================
+    const selectPayment = (method) => {
+      selectedPayment = method;
+      const qrSection = document.getElementById('qr-section');
+
+      if (method === 'QR') {
+        qrSection.classList.remove('hidden');
+      } else {
+        qrSection.classList.add('hidden');
+      }
+    };
+
+    // ============================================================
+    // placeOrder - ยืนยันการสั่งซื้อ
+    // ============================================================
+    // Flow:
+    // 1. ตรวจ Input (ที่อยู่ต้องมี)
+    // 2. เรียก POST /api/orders พร้อม Token + ข้อมูลการสั่ง
+    // 3. Server:
+    //    - ตรวจ Token
+    //    - ดึงสินค้าจาก Cart ของ User
+    //    - สร้าง Order + Order Items ใน DB (Transaction)
+    //    - ล้าง Cart
+    // 4. ได้ Order กลับมา → แสดง Success Modal
+    // ============================================================
+    const placeOrder = async () => {
+      const address  = document.getElementById('address').value.trim();
+      const errorDiv = document.getElementById('error-msg');
+      errorDiv.classList.add('hidden');
+
+      if (!address) {
+        errorDiv.textContent = 'กรุณากรอกที่อยู่จัดส่ง';
+        errorDiv.classList.remove('hidden');
+        return;
+      }
+
+      const btn = document.getElementById('place-order-btn');
+      btn.disabled   = true;
+      btn.textContent = '⏳ กำลังดำเนินการ...';
+
+      try {
+        // ส่ง Order ไปที่ Backend
+        // Body: { payment_method, address }
+        // Header: Authorization: Bearer <token>  ← ส่งอัตโนมัติจาก apiCall
+        const res = await apiCall('/orders', 'POST', {
+          payment_method: selectedPayment,
+          address
+        });
+
+        // แสดง Success Modal
+        document.getElementById('order-id').textContent = res.data.id;
+        document.getElementById('success-modal').classList.remove('hidden');
+
+      } catch (err) {
+        errorDiv.textContent = err.message;
+        errorDiv.classList.remove('hidden');
+        btn.disabled   = false;
+        btn.textContent = '✅ ยืนยันคำสั่งซื้อ';
+      }
+    };
+  </script>
+</body>
+</html>
