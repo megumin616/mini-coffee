@@ -48,9 +48,29 @@
 
       <!-- Category Filter -->
       <div class="flex gap-2 flex-wrap" id="category-filters">
-        <button onclick="filterCategory(null)"
+        <button type="button" onclick="filterCategory(null)"
                 class="category-btn active px-4 py-1.5 rounded-full text-sm font-medium border transition">
           ทั้งหมด
+        </button>
+        <button type="button" onclick="filterCategory('Specialty')"
+                class="category-btn px-4 py-1.5 rounded-full text-sm font-medium border transition">
+          Specialty
+        </button>
+        <button type="button" onclick="filterCategory('Premium')"
+                class="category-btn px-4 py-1.5 rounded-full text-sm font-medium border transition">
+          Premium
+        </button>
+        <button type="button" onclick="filterCategory('Exchange')"
+                class="category-btn px-4 py-1.5 rounded-full text-sm font-medium border transition">
+          Exchange
+        </button>
+        <button type="button" onclick="filterCategory('Below Standard')"
+                class="category-btn px-4 py-1.5 rounded-full text-sm font-medium border transition">
+          Below Standard
+        </button>
+        <button type="button" onclick="filterCategory('Off Grade')"
+                class="category-btn px-4 py-1.5 rounded-full text-sm font-medium border transition">
+          Off Grade
         </button>
       </div>
     </div>
@@ -111,9 +131,6 @@
         const res = await apiCall('/products', 'GET', null, false);
         allProducts = res.data;
 
-        // สร้าง Category Filters จาก Data จริง
-        buildCategoryFilters(allProducts);
-
         // แสดงสินค้า
         renderProducts(allProducts);
 
@@ -121,23 +138,6 @@
         document.getElementById('loading').innerHTML =
           `<p class="text-red-400">โหลดสินค้าไม่สำเร็จ: ${err.message}</p>`;
       }
-    };
-
-    // ============================================================
-    // buildCategoryFilters - สร้างปุ่ม Filter จากหมวดหมู่จริง
-    // ============================================================
-    const buildCategoryFilters = (products) => {
-      // หา Category ที่ไม่ซ้ำกัน
-      const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
-      const container  = document.getElementById('category-filters');
-
-      categories.forEach(cat => {
-        const btn = document.createElement('button');
-        btn.textContent = cat;
-        btn.className   = 'category-btn px-4 py-1.5 rounded-full text-sm font-medium border transition';
-        btn.onclick     = () => filterCategory(cat);
-        container.appendChild(btn);
-      });
     };
 
     // ============================================================

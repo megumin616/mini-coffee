@@ -217,7 +217,7 @@
           <select id="product-form-category" class="w-full border rounded-lg px-3 py-2 bg-white">
             <option value="">— เลือกหมวดหมู่ —</option>
           </select>
-          <p class="text-xs text-gray-400 mt-1">รายการเดียวกับตัวกรองหมวดในหน้าร้าน (จากสินค้าที่แสดง)</p>
+          <p class="text-xs text-gray-400 mt-1">หมวดเดียวกับปุ่มกรองในหน้า products.html</p>
         </div>
         <label class="flex items-center gap-2 cursor-pointer">
           <input id="product-form-active" type="checkbox" class="rounded" checked />
@@ -571,16 +571,18 @@
       return d.innerHTML;
     }
 
-    // สร้างรายการหมวดแบบเดียวกับ products.html (buildCategoryFilters จาก GET /api/products)
-    async function populateProductCategoryDropdown(selectedCategory) {
+    // หมวดหมู่คงที่ — ตรงกับปุ่มใน products.html
+    const PRODUCT_CATEGORIES = [
+      'Specialty',
+      'Premium',
+      'Exchange',
+      'Below Standard',
+      'Off Grade'
+    ];
+
+    function populateProductCategoryDropdown(selectedCategory) {
       const select = document.getElementById('product-form-category');
-      let categories = [];
-      try {
-        const res = await apiCall('/products', 'GET', null, false);
-        categories = [...new Set(res.data.map((p) => p.category).filter(Boolean))];
-      } catch (e) {
-        categories = [];
-      }
+      const categories = [...PRODUCT_CATEGORIES];
       const sel = selectedCategory ? String(selectedCategory) : '';
       if (sel && !categories.includes(sel)) {
         categories.push(sel);
@@ -595,7 +597,7 @@
       select.value = sel;
     }
 
-    async function openProductModal(productId) {
+    function openProductModal(productId) {
       document.getElementById('product-modal').classList.remove('hidden');
       const idEl = document.getElementById('product-form-id');
 
@@ -605,7 +607,7 @@
         if (!p) return;
         categoryForDropdown = p.category || '';
       }
-      await populateProductCategoryDropdown(categoryForDropdown);
+      populateProductCategoryDropdown(categoryForDropdown);
 
       if (productId == null) {
         document.getElementById('product-modal-title').textContent = 'เพิ่มสินค้า';
